@@ -1,0 +1,5 @@
+﻿# Aggregated sweep results generated: 2025-09-17 21:15:59Z
+# Source files and their columns:
+#  sweep_m8_ef50.csv -> (no columns detected) (size=0 bytes, lastWrite=2025-09-17 21:15:58Z)
+#    ERR: Error: Could not find or load main class com.codetalker.benchmarks.SweepBench | Caused by: java.lang.ClassNotFoundException: com.codetalker.benchmarks.SweepBench
+

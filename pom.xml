@@ -1,0 +1,149 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 
+         http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    
+    <groupId>com.codetalker</groupId>
+    <artifactId>code-talker</artifactId>
+    <version>2.0.0-SNAPSHOT</version>
+    <packaging>jar</packaging>
+    
+    <properties>
+        <maven.compiler.source>21</maven.compiler.source>
+        <maven.compiler.target>21</maven.compiler.target>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    </properties>
+    
+    <dependencies>
+        <!-- H2 Database -->
+        <dependency>
+            <groupId>com.h2database</groupId>
+            <artifactId>h2</artifactId>
+            <version>2.2.224</version>
+        </dependency>
+
+        <!-- JSON Processing -->
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-databind</artifactId>
+            <version>2.15.2</version>
+        </dependency>
+
+        <!-- Logging -->
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-api</artifactId>
+            <version>2.0.7</version>
+        </dependency>
+        <dependency>
+            <groupId>ch.qos.logback</groupId>
+            <artifactId>logback-classic</artifactId>
+            <version>1.4.8</version>
+        </dependency>
+
+        <!-- Testing -->
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <version>5.10.0</version>
+            <scope>test</scope>
+        </dependency>
+
+
+        <!-- Jelmerk HNSW ANN library (jdk17 build) - used via reflection/optional adapter -->
+        <dependency>
+            <groupId>com.github.jelmerk</groupId>
+            <artifactId>hnswlib-core-jdk17</artifactId>
+            <version>1.2.1</version>
+        </dependency>
+
+
+    </dependencies>
+        <repositories>
+            <repository>
+            <id>central</id>
+            <url>https://repo.maven.apache.org/maven2</url>
+        </repository>
+        <repository>
+            <id>google-maven</id>
+            <name>Google Maven</name>
+            <url>https://maven.google.com</url>
+        </repository>
+    </repositories>
+
+    <build>
+        <plugins>
+                <!-- Configure surefire to set a system property enabling in-memory H2 during tests -->
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-surefire-plugin</artifactId>
+                    <version>3.0.0-M7</version>
+                    <configuration>
+                        <systemPropertyVariables>
+                            <!-- When running tests, this property will be true and DatabaseManager will use an in-memory H2 URL -->
+                            <test.h2.inmemory>true</test.h2.inmemory>
+                        </systemPropertyVariables>
+                        <!-- exclude integration tests (run by failsafe) -->
+                        <excludes>
+                            <exclude>**/*IntegrationTest.java</exclude>
+                            <exclude>**/*IT.java</exclude>
+                        </excludes>
+                    </configuration>
+                </plugin>
+
+                <!-- Failsafe: run integration tests in the verify phase. Integration tests match *IntegrationTest or *IT. -->
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-failsafe-plugin</artifactId>
+                    <version>3.0.0-M7</version>
+                    <executions>
+                        <execution>
+                            <id>integration-test</id>
+                            <goals>
+                                <goal>integration-test</goal>
+                            </goals>
+                        </execution>
+                        <execution>
+                            <id>verify</id>
+                            <goals>
+                                <goal>verify</goal>
+                            </goals>
+                        </execution>
+                    </executions>
+                    <configuration>
+                        <includes>
+                            <include>**/*IntegrationTest.java</include>
+                            <include>**/*IT.java</include>
+                        </includes>
+                    </configuration>
+                </plugin>
+        </plugins>
+    </build>
+    
+    <profiles>
+        <!-- Optional profile to include the heavy TensorFlow native artifacts for integration testing. -->
+        <profile>
+            <id>with-tensorflow</id>
+            <activation>
+                <!-- activate with -Pwith-tensorflow or -DwithTensorFlow=true -->
+                <property>
+                    <name>withTensorFlow</name>
+                    <value>true</value>
+                </property>
+            </activation>
+            <dependencies>
+                <dependency>
+                    <groupId>org.tensorflow</groupId>
+                    <artifactId>tensorflow-core-platform</artifactId>
+                    <version>0.4.0</version>
+                </dependency>
+            </dependencies>
+            <properties>
+                <!-- When running with TensorFlow enabled, set this property so any integration tests can detect it -->
+                <tf.integration.enabled>true</tf.integration.enabled>
+            </properties>
+        </profile>
+    </profiles>
+</project>

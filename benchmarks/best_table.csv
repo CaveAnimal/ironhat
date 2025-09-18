@@ -1,0 +1,4 @@
+﻿m,ef,recallUsed,comment,avgQueryMs,buildMs,memoryBytes
+8,200,0.9400,recall=0.9400 (threshold=0.95) (max-recall fallback),0.396245,1743,6722912
+16,200,0.9400,recall=0.9400 (threshold=0.95) (max-recall fallback),0.423275,1796,6666960
+32,200,0.9400,recall=0.9400 (threshold=0.95) (max-recall fallback),0.383125,1786,6694536

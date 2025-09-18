@@ -1,0 +1,21 @@
+﻿# Aggregated sweep results generated: 2025-09-17 22:38:52Z
+# Source files and their columns:
+#  sweep_m16_ef200.csv -> m,ef,recall@1,recall@5,recall@10,p50ms,p95ms,p99ms,avgQueryMs,buildMs,memoryBytes (size=221 bytes, lastWrite=2025-09-17 22:38:49Z)
+#  sweep_m8_ef50.csv -> m,ef,recall@1,recall@5,recall@10,p50ms,p95ms,p99ms,avgQueryMs,buildMs,memoryBytes (size=219 bytes, lastWrite=2025-09-17 22:38:45Z)
+#  sweep_m8_ef100.csv -> m,ef,recall@1,recall@5,recall@10,p50ms,p95ms,p99ms,avgQueryMs,buildMs,memoryBytes (size=220 bytes, lastWrite=2025-09-17 22:38:45Z)
+#  sweep_m16_ef100.csv -> m,ef,recall@1,recall@5,recall@10,p50ms,p95ms,p99ms,avgQueryMs,buildMs,memoryBytes (size=221 bytes, lastWrite=2025-09-17 22:38:48Z)
+#  sweep_m16_ef50.csv -> m,ef,recall@1,recall@5,recall@10,p50ms,p95ms,p99ms,avgQueryMs,buildMs,memoryBytes (size=220 bytes, lastWrite=2025-09-17 22:38:48Z)
+#  sweep_m32_ef200.csv -> m,ef,recall@1,recall@5,recall@10,p50ms,p95ms,p99ms,avgQueryMs,buildMs,memoryBytes (size=221 bytes, lastWrite=2025-09-17 22:38:52Z)
+#  sweep_m32_ef100.csv -> m,ef,recall@1,recall@5,recall@10,p50ms,p95ms,p99ms,avgQueryMs,buildMs,memoryBytes (size=221 bytes, lastWrite=2025-09-17 22:38:52Z)
+#  sweep_m32_ef50.csv -> m,ef,recall@1,recall@5,recall@10,p50ms,p95ms,p99ms,avgQueryMs,buildMs,memoryBytes (size=220 bytes, lastWrite=2025-09-17 22:38:51Z)
+#  sweep_m8_ef200.csv -> m,ef,recall@1,recall@5,recall@10,p50ms,p95ms,p99ms,avgQueryMs,buildMs,memoryBytes (size=220 bytes, lastWrite=2025-09-17 22:38:46Z)
+m,ef,recall@1,recall@5,recall@10,p50ms,p95ms,p99ms,avgQueryMs,buildMs,memoryBytes
+16,100,0.8950,0.9950,1.0000,0.209000,0.273000,0.437000,0.233465,1788,6668800
+16,200,0.9450,0.9950,0.9950,0.338000,0.524000,0.696000,0.380835,1803,6668056
+16,50,0.7900,0.9900,1.0000,0.129000,0.253000,0.396000,0.157965,1826,6675632
+32,100,0.8800,0.9950,1.0000,0.197000,0.311000,0.398000,0.223550,1737,6709136
+32,200,0.9400,0.9950,0.9950,0.329000,0.429000,0.596000,0.358235,1727,6679440
+32,50,0.7900,0.9900,1.0000,0.120000,0.251000,0.313000,0.145090,1743,6710560
+8,100,0.8900,0.9950,1.0000,0.197000,0.266000,0.406000,0.219375,1763,6670432
+8,200,0.9400,0.9950,0.9950,0.333000,0.467000,0.715000,0.365160,1712,6687280
+8,50,0.7750,0.9900,1.0000,0.116000,0.167000,0.243000,0.133720,1774,6678432

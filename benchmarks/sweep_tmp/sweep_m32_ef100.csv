@@ -1,0 +1,3 @@
+# Sweep parameters: N=5000 DIM=64 queries=200 kList=1,5,10
+m,ef,recall@1,recall@5,recall@10,p50ms,p95ms,p99ms,avgQueryMs,buildMs,memoryBytes
+32,100,0.8850,0.9950,0.9950,0.194000,0.258000,0.469000,0.216170,1743,6658576

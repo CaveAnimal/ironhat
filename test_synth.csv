@@ -1,0 +1,21 @@
+﻿# Aggregated sweep results generated: 2025-09-17 22:07:21Z
+# Source files and their columns:
+#  sweep_m16_ef200.csv -> (no columns detected) (size=0 bytes, lastWrite=2025-09-17 22:07:18Z)
+#    ERR: Error: Could not find or load main class com.codetalker.benchmarks.SweepBench | Caused by: java.lang.ClassNotFoundException: com.codetalker.benchmarks.SweepBench
+#  sweep_m8_ef50.csv -> (no columns detected) (size=0 bytes, lastWrite=2025-09-17 22:07:16Z)
+#    ERR: Error: Could not find or load main class com.codetalker.benchmarks.SweepBench | Caused by: java.lang.ClassNotFoundException: com.codetalker.benchmarks.SweepBench
+#  sweep_m8_ef100.csv -> (no columns detected) (size=0 bytes, lastWrite=2025-09-17 22:07:16Z)
+#    ERR: Error: Could not find or load main class com.codetalker.benchmarks.SweepBench | Caused by: java.lang.ClassNotFoundException: com.codetalker.benchmarks.SweepBench
+#  sweep_m16_ef100.csv -> (no columns detected) (size=0 bytes, lastWrite=2025-09-17 22:07:18Z)
+#    ERR: Error: Could not find or load main class com.codetalker.benchmarks.SweepBench | Caused by: java.lang.ClassNotFoundException: com.codetalker.benchmarks.SweepBench
+#  sweep_m16_ef50.csv -> (no columns detected) (size=0 bytes, lastWrite=2025-09-17 22:07:17Z)
+#    ERR: Error: Could not find or load main class com.codetalker.benchmarks.SweepBench | Caused by: java.lang.ClassNotFoundException: com.codetalker.benchmarks.SweepBench
+#  sweep_m32_ef200.csv -> (no columns detected) (size=0 bytes, lastWrite=2025-09-17 22:07:20Z)
+#    ERR: Error: Could not find or load main class com.codetalker.benchmarks.SweepBench | Caused by: java.lang.ClassNotFoundException: com.codetalker.benchmarks.SweepBench
+#  sweep_m32_ef100.csv -> (no columns detected) (size=0 bytes, lastWrite=2025-09-17 22:07:19Z)
+#    ERR: Error: Could not find or load main class com.codetalker.benchmarks.SweepBench | Caused by: java.lang.ClassNotFoundException: com.codetalker.benchmarks.SweepBench
+#  sweep_m32_ef50.csv -> (no columns detected) (size=0 bytes, lastWrite=2025-09-17 22:07:19Z)
+#    ERR: Error: Could not find or load main class com.codetalker.benchmarks.SweepBench | Caused by: java.lang.ClassNotFoundException: com.codetalker.benchmarks.SweepBench
+#  sweep_m8_ef200.csv -> (no columns detected) (size=0 bytes, lastWrite=2025-09-17 22:07:17Z)
+#    ERR: Error: Could not find or load main class com.codetalker.benchmarks.SweepBench | Caused by: java.lang.ClassNotFoundException: com.codetalker.benchmarks.SweepBench
+
