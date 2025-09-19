@@ -8,8 +8,21 @@ If you have questions, ask them until you are 90% confident of success.
 If you are unsure about something, ask for clarification.
 If you make a mistake, own it, learn from it, record it in `ironhat_LESSONS_LEARNED.md` and move on.
 
-Whenever you add/update your own todo list, also add/update the `ironhat_TODO.md` 
-Always mirror any assistant-managed todo list updates into `ironhat_TODO.md` so the project owner has visibility into in-progress and planned assistant work.
+Whenever you add/update your internal todo list, the assistant must immediately run the todo sync and update `ironhat_TODO.md`.
+
+Required behavior for the assistant:
+
+- Immediately after any change to the assistant-managed todo list (create/update/complete/defer), run the sync script to mirror the updated todo list into `ironhat_TODO.md`.
+	- Preferred: invoke the Python helper `tools/sync_todos.py` from the repo root.
+	- Windows-friendly: invoke the PowerShell wrapper `tools/sync_todos.ps1`.
+
+- The assistant must also insert (or update) a single-line changelog at the top of `ironhat_TODO.md` in US Central Time with the format:
+
+	Last synced: YYYY-MM-DD hh:mm:ss AM/PM CDT — ran by <actor>
+
+	Where `<actor>` is the name of the user or assistant that initiated the sync (for assistant runs use `assistant`).
+
+This rule is mandatory: the assistant will not finish any interaction in which it changed its internal todo list without running the sync and writing the changelog line.
 When you are at a point where you have several options moving forward, 
 prioritize the Tasks and Todos in the order in which they appear in their respective documents.
 If you have multiple options for how to proceed with a task or project,

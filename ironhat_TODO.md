@@ -1,3 +1,4 @@
+```markdown
 <!-- ironhat_TODO.md - Assistant-maintained todo list for project planning and actions -->
 # Assistant TODOs (tracked by GitHub Copilot assistant)
 
@@ -5,39 +6,17 @@ This file records the assistant's working todo items, their status, and short no
 
 ## Current Assistant Plan
 
-- [x] Create `ironhat_TODO.md` and append reference to `TheRules.md` — Created and reference appended.
-- [x] Add reflection fallback unit test (`TFEmbeddingServiceReflectionFallbackTest`) — Completed
-- [x] Add invocation-time exception test (`TFEmbeddingServiceInvocationExceptionTest`) — Completed
-- [x] Run full unit tests after changes — Completed (BUILD SUCCESS)
-- [x] Add large-embedding smoke test (`TFEmbeddingServiceLargeEmbeddingSmokeTest`) — Completed
-- [ ] Scaffold Maven project (`pom.xml`, basic src layout) — Not started
-- [ ] Add `ModelLoader`, `DatabaseManager`, `EmbeddingService` skeletons from examples — Not started
-- [ ] Add unit test harness and CI-friendly test runner — Not started
+- [x] Run TF integration tests (prepare) -- Prepare to run Maven integration profile `with-tensorflow`; ensure a TensorFlow SavedModel or .tflite path and confirm TF native libraries are available on the machine.
+- [x] Execute TF integration tests -- Attempted to run `mvn -Pwith-tensorflow -Dcodetalker.model.path=<SAVED_MODEL_PATH> verify` using local `universal-sentence-encoder-lite.tflite` in `src/main/resources/models`; Maven failed due to PowerShell argument parsing error. Capture diagnostic output and prepare re-run.
+- [ ] Collect integration artifacts and update docs -- If integration tests pass, summarize results and update POM/docs with TF notes and model path.
+- [ ] Retry TF integration with correct quoting and native checks -- Re-run Maven with a PowerShell-safe quoted `-Dcodetalker.model.path` and, if the run starts, watch for native TensorFlow/TFLite errors (UnsatisfiedLinkError).
+- [x] Download HF model all-MiniLM-L6-v2 -- Use `huggingface_hub.snapshot_download` to download `sentence-transformers/all-MiniLM-L6-v2` into `src/main/resources/models/all-MiniLM-L6-v2`. Honor `HF_TOKEN` if set in the environment.
+- [-] Mirror todo rule enforcement -- Ensure that when the assistant adds/updates the internal `manage_todo_list`, it immediately writes the same changes to `ironhat_TODO.md` per project rule.
+- [x] Move runtime-essential files to flat model path -- Copy config/tokenizer/model files from the HF snapshot into `src/main/resources/models/all-MiniLM-L6-v2/` for predictable Java/REST loading.
+- [-] Add Python FastAPI shim (embed endpoint) -- Create a FastAPI app that loads the model from `src/main/resources/models/all-MiniLM-L6-v2` and exposes `/embed` POST to return embeddings.
+- [ ] Add Java client snippet -- Add a Java example using `HttpClient` showing how to call the shim and parse float[][] vectors.
+- [x] Add embedding usage README -- Document flatten step, how to run FastAPI shim, and Java client usage in `docs/EMBEDDING_README.md`.
 
-## Notes
-- The assistant will mirror this file with the structured todo list used internally (see project `manage_todo_list`).
+Last synced: 2025-09-19 02:06:11 PM CDT
 
-Last updated: 2025-09-17
-
-## Assistant Internal Todo Snapshot
-
-- In-progress: Switch to tensorflow-core-platform and build (completed)
-- Completed: Reproduce/collect failing tests; Analyze surefire reports; Check pom and build with tests; Apply official TF to POM and run build; Try alternate TF coordinates/versions
-- Next: Fix failing tests; Run full test suite and validate
-
-## ANN Integration Plan
-
-- Preferred starting library: **Jelmerk (hnswlib-core)**. We will create a small abstraction `ApproxNearestNeighborIndex` and an in-memory implementation for tests. The project now includes a `JelmerkAnnIndex` adapter and tests. We will continue by tuning parameters, adding persistence, and integrating the adapter into the search service.
-
-Next steps:
-
-- [ ] Tune `JelmerkAnnIndex` parameters (m, ef, efConstruction, maxItemCount) and add integration tests
-- [ ] Add persistence (save/load) support and round-trip tests
-- [ ] Add benchmarking (JMH) and performance regression checks
-
-
-Timestamp: 2025-09-17T12:05:00-05:00
-
-## Recent assistant actions (appended)
-
-- [2025-09-18] Added unit tests for reflection fallback and invocation-time exceptions; verified full unit test suite passes (BUILD SUCCESS). — Assistant
+```

@@ -1,0 +1,62 @@
+[
+  {
+    "id": 1,
+    "title": "Run TF integration tests (prepare)",
+    "description": "Prepare to run Maven integration profile `with-tensorflow`; ensure a TensorFlow SavedModel or .tflite path and confirm TF native libraries are available on the machine.",
+    "status": "completed"
+  },
+  {
+    "id": 2,
+    "title": "Execute TF integration tests",
+    "description": "Attempted to run `mvn -Pwith-tensorflow -Dcodetalker.model.path=<SAVED_MODEL_PATH> verify` using local `universal-sentence-encoder-lite.tflite` in `src/main/resources/models`; Maven failed due to PowerShell argument parsing error. Capture diagnostic output and prepare re-run.",
+    "status": "completed"
+  },
+  {
+    "id": 3,
+    "title": "Collect integration artifacts and update docs",
+    "description": "If integration tests pass, summarize results and update POM/docs with TF notes and model path.",
+    "status": "not-started"
+  },
+  {
+    "id": 4,
+    "title": "Retry TF integration with correct quoting and native checks",
+    "description": "Re-run Maven with a PowerShell-safe quoted `-Dcodetalker.model.path` and, if the run starts, watch for native TensorFlow/TFLite errors (UnsatisfiedLinkError).",
+    "status": "not-started"
+  },
+  {
+    "id": 5,
+    "title": "Download HF model all-MiniLM-L6-v2",
+    "description": "Use `huggingface_hub.snapshot_download` to download `sentence-transformers/all-MiniLM-L6-v2` into `src/main/resources/models/all-MiniLM-L6-v2`. Honor `HF_TOKEN` if set in the environment.",
+    "status": "completed"
+  },
+  {
+    "id": 6,
+    "title": "Mirror todo rule enforcement",
+    "description": "Ensure that when the assistant adds/updates the internal `manage_todo_list`, it immediately writes the same changes to `ironhat_TODO.md` per project rule.",
+    "status": "in-progress"
+  },
+  {
+    "id": 7,
+    "title": "Move runtime-essential files to flat model path",
+    "description": "Copy config/tokenizer/model files from the HF snapshot into `src/main/resources/models/all-MiniLM-L6-v2/` for predictable Java/REST loading.",
+    "status": "completed"
+  },
+  {
+    "id": 8,
+    "title": "Add Python FastAPI shim (embed endpoint)",
+    "description": "Create a FastAPI app that loads the model from `src/main/resources/models/all-MiniLM-L6-v2` and exposes `/embed` POST to return embeddings.",
+    "status": "in-progress"
+  },
+  {
+    "id": 9,
+    "title": "Add Java client snippet",
+    "description": "Add a Java example using `HttpClient` showing how to call the shim and parse float[][] vectors.",
+    "status": "not-started"
+  },
+  {
+    "id": 10,
+    "title": "Add embedding usage README",
+    "description": "Document flatten step, how to run FastAPI shim, and Java client usage in `docs/EMBEDDING_README.md`.",
+    "status": "completed"
+  }
+]
