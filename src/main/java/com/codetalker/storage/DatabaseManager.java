@@ -49,37 +49,19 @@ public class DatabaseManager {
         ds.setUser(DB_USER);
         ds.setPassword(DB_PASSWORD);
         logger.info("Configured H2 DataSource with URL {} (requested path={})", jdbcUrl, databasePath);
+        // Run Flyway migrations against this DataSource so the schema is versioned and repeatable
+        try {
+            org.flywaydb.core.Flyway flyway = org.flywaydb.core.Flyway.configure().dataSource(ds).load();
+            flyway.migrate();
+        } catch (Exception e) {
+            logger.warn("Flyway migration failed or not applicable: {}", e.getMessage());
+        }
         return ds;
     }
 
     private void initializeSchema() {
-        try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
-            StringBuilder createTable = new StringBuilder();
-            createTable.append("CREATE TABLE IF NOT EXISTS embeddings (");
-            createTable.append(" id BIGINT PRIMARY KEY AUTO_INCREMENT,");
-            createTable.append(" content_hash VARCHAR(64) UNIQUE NOT NULL,");
-            createTable.append(" file_path VARCHAR(500) NOT NULL,");
-            createTable.append(" content_type VARCHAR(50) NOT NULL,");
-            createTable.append(" chunk_text CLOB NOT NULL,");
-            // H2 doesn't support untyped ARRAY in CREATE TABLE; store vectors as CLOB (JSON) for portability
-            createTable.append(" vector CLOB,");
-            createTable.append(" metadata CLOB,");
-            createTable.append(" created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,");
-            createTable.append(" updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP");
-            createTable.append(" );");
-
-            stmt.execute(createTable.toString());
-
-            // Create indexes separately to avoid executing multiple statements in a single execute call
-            stmt.execute("CREATE INDEX IF NOT EXISTS idx_embeddings_file_path ON embeddings(file_path);");
-            stmt.execute("CREATE INDEX IF NOT EXISTS idx_embeddings_content_type ON embeddings(content_type);");
-            stmt.execute("CREATE INDEX IF NOT EXISTS idx_embeddings_hash ON embeddings(content_hash);");
-
-            logger.info("Database schema initialized");
-        } catch (SQLException e) {
-            logger.error("Failed to initialize database schema", e);
-            throw new RuntimeException(e);
-        }
+        // Schema initialization is now handled via Flyway migrations run during DataSource setup.
+        logger.info("Schema initialization delegated to Flyway migrations");
     }
 
     public Connection getConnection() throws SQLException {

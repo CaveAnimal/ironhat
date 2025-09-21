@@ -55,6 +55,13 @@
             <scope>test</scope>
         </dependency>
 
+        <!-- Flyway for DB migrations -->
+        <dependency>
+            <groupId>org.flywaydb</groupId>
+            <artifactId>flyway-core</artifactId>
+            <version>9.22.0</version>
+        </dependency>
+
 
         <!-- Jelmerk HNSW ANN library (jdk17 build) - used via reflection/optional adapter -->
         <dependency>
@@ -160,6 +167,24 @@
                     <groupId>org.tensorflow</groupId>
                     <artifactId>tensorflow-core-platform</artifactId>
                     <version>0.4.0</version>
+                </dependency>
+                <!-- TensorFlow Lite for Java: included in the profile so local builds opt-in to native artifacts -->
+                <dependency>
+                    <groupId>org.tensorflow</groupId>
+                    <artifactId>tensorflow-lite</artifactId>
+                    <version>2.17.0</version>
+                </dependency>
+                <dependency>
+                    <groupId>org.tensorflow</groupId>
+                    <artifactId>tensorflow-lite-api</artifactId>
+                    <version>2.17.0</version>
+                </dependency>
+                <!-- Fallback: Bytedeco platform which bundles native binaries for many platforms. Use only if official artifacts are unavailable. -->
+                <dependency>
+                    <groupId>org.bytedeco</groupId>
+                    <artifactId>tensorflow-lite-platform</artifactId>
+                    <version>2.7.0-1.5.8</version>
+                    <scope>compile</scope>
                 </dependency>
             </dependencies>
             <properties>

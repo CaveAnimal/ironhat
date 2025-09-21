@@ -133,10 +133,17 @@ public class ModelLoader {
                     logger.warn("TFLite interpreter instantiation failed (ignored)", roe);
                 }
             }
-        } catch (ClassNotFoundException cnf) {
-            // TFLite not present - that's fine
         } catch (ReflectiveOperationException roe) {
-            logger.warn("TFLite reflective probing failed (ignored)", roe);
+            // If the runtime isn't available (e.g. TFLite classes not on the classpath),
+            // reflectively probing will throw a ClassNotFoundException which is a
+            // subclass of ReflectiveOperationException. Handle both cases here and
+            // avoid duplicate catch clauses which can confuse some compilers.
+            if (roe instanceof ClassNotFoundException) {
+                // TFLite not present - that's fine and expected in many developer environments
+                logger.debug("TFLite classes not present on classpath (ignored)");
+            } else {
+                logger.warn("TFLite reflective probing failed (ignored)", roe);
+            }
         }
 
         try {
@@ -159,10 +166,14 @@ public class ModelLoader {
                     // fall through
                 }
             }
-        } catch (ClassNotFoundException cnf) {
-            // full TF not present - ok
         } catch (ReflectiveOperationException roe) {
-            logger.warn("SavedModelBundle reflective init failed (ignored)", roe);
+            // SavedModelBundle and other reflective errors are handled here.
+            if (roe instanceof ClassNotFoundException) {
+                // Full TensorFlow Java runtime not present - that's acceptable in many setups
+                logger.debug("SavedModelBundle classes not present on classpath (ignored)");
+            } else {
+                logger.warn("SavedModelBundle reflective init failed (ignored)", roe);
+            }
         }
 
         // If no TF runtime available, treat file-presence as success

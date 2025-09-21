@@ -59,4 +59,62 @@ This file records every change made to `pom.xml` in the `FeH-001` branch and the
   - Outcome: `docs/INTEGRATION_RESULTS.md` added with pointers to `target/failsafe-reports` and recommended next steps.
 
 
+- 2025-09-21T08:35:00-05:00 — assistant
+  - Change: Added `org.tensorflow:tensorflow-lite:2.13.0` to the `with-tensorflow` profile in `pom.xml`.
+  - Rationale: Provide an opt-in dependency for TensorFlow Lite to support integration tests that need TFLite runtime. Keeping TFLite under `with-tensorflow` prevents forcing large native artifacts for default builds.
+  - Outcome: Change recorded. To activate this profile locally, run: `mvn -Pwith-tensorflow -DskipTests clean compile` (note: native JNI artifacts may still require platform-specific binaries).
+
+- Exact diff snippet applied to `pom.xml` (profile `with-tensorflow`):
+
+```diff
+@@
+ -                <!-- TensorFlow Lite for Java: included in the profile so local builds opt-in to native artifacts -->
+ -                <dependency>
+ -                    <groupId>org.tensorflow</groupId>
+ -                    <artifactId>tensorflow-lite</artifactId>
+ -                    <version>2.13.0</version>
+ -                </dependency>
+ +                <!-- TensorFlow Lite for Java: included in the profile so local builds opt-in to native artifacts -->
+ +                <dependency>
+ +                    <groupId>org.tensorflow</groupId>
+ +                    <artifactId>tensorflow-lite</artifactId>
+ +                    <version>2.17.0</version>
+ +                </dependency>
+ +                <dependency>
+ +                    <groupId>org.tensorflow</groupId>
+ +                    <artifactId>tensorflow-lite-api</artifactId>
+ +                    <version>2.17.0</version>
+ +                </dependency>
+@@
+```
+
+- Attempted to build with `-Pwith-tensorflow -DskipTests clean compile -U` to validate resolution:
+  - Outcome: BUILD FAILURE — Maven could not find `org.tensorflow:tensorflow-lite:2.13.0` or `org.tensorflow:tensorflow-lite-api:2.13.0` earlier; after trying 2.17.0 the artifact resolution still failed or will be re-attempted next.
+
+- 2025-09-21T08:39:30-05:00 — assistant
+  - Change: Added Bytedeco fallback `org.bytedeco:tensorflow-lite-platform:2.7.0-1.5.8` to the `with-tensorflow` profile as a fallback bundling native binaries.
+  - Exact diff snippet applied to `pom.xml` (profile `with-tensorflow`):
+
+```diff
+@@
+                 <dependency>
+                     <groupId>org.tensorflow</groupId>
+                     <artifactId>tensorflow-lite-api</artifactId>
+                     <version>2.17.0</version>
+                 </dependency>
+ +                <!-- Fallback: Bytedeco platform which bundles native binaries for many platforms. Use only if official artifacts are unavailable. -->
+ +                <dependency>
+ +                    <groupId>org.bytedeco</groupId>
+ +                    <artifactId>tensorflow-lite-platform</artifactId>
+ +                    <version>2.7.0-1.5.8</version>
+ +                    <scope>compile</scope>
+ +                </dependency>
+@@
+```
+
+  - Rationale: Some official TensorFlow Lite artifacts have been relocated or are not available in Maven Central/Google Maven for certain versions; Bytedeco provides a platform bundle that includes native binaries and can simplify local resolution for developer machines. This is a fallback and may be removed once official artifacts or a supported coordinate set is found.
+  - Next: Attempt build again to see if Bytedeco artifacts resolve.
+
+
+
 
