@@ -14,6 +14,10 @@
         <maven.compiler.source>21</maven.compiler.source>
         <maven.compiler.target>21</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <!-- Embed shim config: control whether integration tests auto-start the Python shim -->
+        <embed.shim.autoStart>true</embed.shim.autoStart>
+        <!-- Provide an explicit python executable path (optional). If empty, tests will prefer .venv then 'python' on PATH. -->
+        <embed.shim.python></embed.shim.python>
     </properties>
     
     <dependencies>
@@ -74,6 +78,15 @@
     </repositories>
 
     <build>
+        <resources>
+            <resource>
+                <directory>src/main/resources</directory>
+                <excludes>
+                    <!-- Exclude heavy model artifacts from the normal resource copy to avoid file locks and huge jars -->
+                    <exclude>models/**</exclude>
+                </excludes>
+            </resource>
+        </resources>
         <plugins>
                 <!-- Configure surefire to set a system property enabling in-memory H2 during tests -->
                 <plugin>
@@ -81,6 +94,8 @@
                     <artifactId>maven-surefire-plugin</artifactId>
                     <version>3.0.0-M7</version>
                     <configuration>
+                        <!-- Open java.lang to unnamed modules so reflection-based env-var helpers can run on Java 9+ -->
+                        <argLine>--add-opens java.base/java.lang=ALL-UNNAMED</argLine>
                         <systemPropertyVariables>
                             <!-- When running tests, this property will be true and DatabaseManager will use an in-memory H2 URL -->
                             <test.h2.inmemory>true</test.h2.inmemory>
@@ -113,10 +128,17 @@
                         </execution>
                     </executions>
                     <configuration>
+                        <!-- Ensure reflective tests can access java.lang internals under strong encapsulation (Java 9+) -->
+                        <argLine>--add-opens java.base/java.lang=ALL-UNNAMED</argLine>
                         <includes>
                             <include>**/*IntegrationTest.java</include>
                             <include>**/*IT.java</include>
                         </includes>
+                        <!-- Pass shim config into the test JVM so tests can respect CI configuration -->
+                        <systemPropertyVariables>
+                            <embed.shim.autoStart>${embed.shim.autoStart}</embed.shim.autoStart>
+                            <embed.shim.python>${embed.shim.python}</embed.shim.python>
+                        </systemPropertyVariables>
                     </configuration>
                 </plugin>
         </plugins>
@@ -144,6 +166,25 @@
                 <!-- When running with TensorFlow enabled, set this property so any integration tests can detect it -->
                 <tf.integration.enabled>true</tf.integration.enabled>
             </properties>
+        </profile>
+        <!-- CI profile to disable auto-start of local shim (useful when CI provides a service or wants to avoid starting processes) -->
+        <profile>
+            <id>ci-no-shim</id>
+            <properties>
+                <embed.shim.autoStart>false</embed.shim.autoStart>
+            </properties>
+        </profile>
+        <!-- Profile to explicitly package model artifacts into the jar. Only enable when you intend to ship models inside the artifact. -->
+        <profile>
+            <id>package-models</id>
+            <build>
+                <resources>
+                    <resource>
+                        <directory>src/main/resources</directory>
+                        <!-- no excludes: include models/** when this profile is active -->
+                    </resource>
+                </resources>
+            </build>
         </profile>
     </profiles>
 </project>

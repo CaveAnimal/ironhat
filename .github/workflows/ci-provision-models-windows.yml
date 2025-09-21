@@ -1,0 +1,123 @@
+name: CI - provision model and run tests (Windows)
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  test-with-model-windows:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Prepare model directory
+        run: |
+          New-Item -ItemType Directory -Force -Path $env:TEMP\models | Out-Null
+        shell: powershell
+
+      - name: Pre-check required secrets (Windows)
+        shell: pwsh
+        run: |
+          $src = $env:MODEL_ARTIFACT_SOURCE
+          Write-Host "MODEL_ARTIFACT_SOURCE: '$src'"
+          if (-not $src -or $src -eq 'http') {
+            if (-not $env:MODEL_ARTIFACT_URL) {
+              Write-Error "Missing required secret: MODEL_ARTIFACT_URL for HTTP download"
+              exit 1
+            }
+          } elseif ($src -eq 'github_release') {
+            if (-not $env:MODEL_RELEASE_REPO -or -not $env:MODEL_RELEASE_TAG -or -not $env:MODEL_RELEASE_ASSET) {
+              Write-Error "Missing required GitHub release secrets: MODEL_RELEASE_REPO, MODEL_RELEASE_TAG, MODEL_RELEASE_ASSET"
+              exit 1
+            }
+          } elseif ($src -eq 's3') {
+            if (-not $env:AWS_ACCESS_KEY_ID -or -not $env:AWS_SECRET_ACCESS_KEY -or -not $env:MODEL_S3_URI) {
+              Write-Error "Missing required S3 secrets: AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, MODEL_S3_URI"
+              exit 1
+            }
+          } else {
+            Write-Error "Unknown MODEL_ARTIFACT_SOURCE: $src"
+            exit 1
+          }
+
+      - name: Download model artifact (PowerShell)
+        shell: powershell
+        run: |
+          if (-not $env:MODEL_ARTIFACT_SOURCE -or $env:MODEL_ARTIFACT_SOURCE -eq 'http') {
+            if (-not $env:MODEL_ARTIFACT_URL) {
+              Write-Error "Missing MODEL_ARTIFACT_URL secret"
+              exit 1
+            }
+            $out = "$env:TEMP\model.zip"
+            Invoke-WebRequest -Uri $env:MODEL_ARTIFACT_URL -OutFile $out
+            Expand-Archive -LiteralPath $out -DestinationPath "$env:TEMP\models" -Force
+          }
+
+      - name: Download model from GitHub Release (optional)
+        if: ${{ secrets.MODEL_ARTIFACT_SOURCE == 'github_release' }}
+        shell: pwsh
+        run: |
+          gh release download $env:MODEL_RELEASE_TAG --repo $env:MODEL_RELEASE_REPO --pattern $env:MODEL_RELEASE_ASSET --dir $env:TEMP\models
+
+      - name: Download model from S3 (optional)
+        if: ${{ secrets.MODEL_ARTIFACT_SOURCE == 's3' }}
+        shell: pwsh
+        run: |
+          # Configure AWS credentials for the following S3 download step
+          Write-Host "Configuring AWS credentials"
+        
+      - name: Configure AWS credentials (Windows)
+        if: ${{ secrets.MODEL_ARTIFACT_SOURCE == 's3' }}
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: S3 copy model artifact (Windows)
+        if: ${{ secrets.MODEL_ARTIFACT_SOURCE == 's3' }}
+        shell: pwsh
+        run: |
+          if (-not $env:MODEL_S3_URI) {
+            Write-Error "Missing MODEL_S3_URI secret"
+            exit 1
+          }
+          aws s3 cp $env:MODEL_S3_URI $env:TEMP\model.zip
+          Expand-Archive -LiteralPath $env:TEMP\model.zip -DestinationPath "$env:TEMP\models" -Force
+
+      - name: Normalize extracted layout (unwrap single top-level folder)
+        shell: pwsh
+        run: |
+          $modelPath = "$env:TEMP\models"
+          $topLevel = Get-ChildItem -LiteralPath $modelPath -Force
+          $dirs = $topLevel | Where-Object { $_.PSIsContainer }
+          $files = $topLevel | Where-Object { -not $_.PSIsContainer }
+          if (($dirs.Count -eq 1) -and ($files.Count -eq 0)) {
+            $single = $dirs[0].FullName
+            Write-Host "Normalizing: moving contents of $single up to $modelPath"
+            Get-ChildItem -LiteralPath $single -Force | ForEach-Object {
+              Move-Item -LiteralPath $_.FullName -Destination $modelPath -Force
+            }
+            Remove-Item -LiteralPath $single -Force -Recurse
+          } else {
+            Write-Host "No normalization needed (dirs=$($dirs.Count) files=$($files.Count))"
+          }
+
+      - name: Validate model layout
+        shell: pwsh
+        run: |
+          $modelPath = "$env:TEMP\models"
+          if (-not (Test-Path "$modelPath\model.onnx") -and -not (Test-Path "$modelPath\tokenizer.json")) {
+            Write-Host "❌ Model layout invalid: expected model.onnx or tokenizer.json in $modelPath"
+            Get-ChildItem -Recurse $modelPath | ForEach-Object { Write-Host $_.FullName }
+            exit 1
+          }
+
+      - name: Run Maven tests with model path (expect ONNX)
+        shell: powershell
+        env:
+          CODE_TALKER_MODEL_PATH: ${{ env.TEMP }}\models
+        run: |
+          mvn -DskipTests=false -Dembed.shim.requireLoaded=true -Dembed.shim.expectRuntime=onnx verify

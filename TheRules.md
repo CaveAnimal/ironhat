@@ -23,6 +23,12 @@ Required behavior for the assistant:
 	Where `<actor>` is the name of the user or assistant that initiated the sync (for assistant runs use `assistant`).
 
 This rule is mandatory: the assistant will not finish any interaction in which it changed its internal todo list without running the sync and writing the changelog line.
+ 
+New mandatory behavior (assistant-run sync on messages)
+----------------------------------------------------
+- The assistant must run the todo sync and update `ironhat_TODO.md` at the end of every assistant message that posts project-related information, changes the project state, or could affect the todo list's interpretation. This must be performed even if the assistant did not modify the internal todo list in that message; the goal is to keep the on-disk `ironhat_TODO.md` strictly in sync with assistant communications.
+- Preferred: invoke `python tools/sync_todos.py` from the repo root. Windows-friendly: use `tools/sync_todos.ps1`.
+
 When you are at a point where you have several options moving forward, 
 prioritize the Tasks and Todos in the order in which they appear in their respective documents.
 If you have multiple options for how to proceed with a task or project,

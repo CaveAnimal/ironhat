@@ -1,0 +1,111 @@
+name: CI - provision model and run tests
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  test-with-model:
+    runs-on: ubuntu-latest
+    env:
+      MAVEN_OPTS: -Xmx2g
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Prepare model directory
+        run: |
+          mkdir -p /tmp/models
+
+      - name: Pre-check required secrets
+        run: |
+          src="${{ secrets.MODEL_ARTIFACT_SOURCE }}"
+          echo "MODEL_ARTIFACT_SOURCE: '$src'"
+          if [ -z "$src" ] || [ "$src" == "http" ]; then
+            if [ -z "${{ secrets.MODEL_ARTIFACT_URL }}" ]; then
+              echo "Missing required secret: MODEL_ARTIFACT_URL for HTTP download" >&2
+              exit 1
+            fi
+          elif [ "$src" == "github_release" ]; then
+            if [ -z "${{ secrets.MODEL_RELEASE_REPO }}" ] || [ -z "${{ secrets.MODEL_RELEASE_TAG }}" ] || [ -z "${{ secrets.MODEL_RELEASE_ASSET }}" ]; then
+              echo "Missing required GitHub release secrets: MODEL_RELEASE_REPO, MODEL_RELEASE_TAG, MODEL_RELEASE_ASSET" >&2
+              exit 1
+            fi
+          elif [ "$src" == "s3" ]; then
+            if [ -z "${{ secrets.AWS_ACCESS_KEY_ID }}" ] || [ -z "${{ secrets.AWS_SECRET_ACCESS_KEY }}" ] || [ -z "${{ secrets.MODEL_S3_URI }}" ]; then
+              echo "Missing required S3 secrets: AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, MODEL_S3_URI" >&2
+              exit 1
+            fi
+          else
+            echo "Unknown MODEL_ARTIFACT_SOURCE: $src" >&2
+            exit 1
+          fi
+
+      - name: Download model artifact
+        # Generic HTTP/HTTPS download: only run when MODEL_ARTIFACT_SOURCE is not set or equals 'http'
+        if: ${{ !secrets.MODEL_ARTIFACT_SOURCE || secrets.MODEL_ARTIFACT_SOURCE == 'http' }}
+        run: |
+          if [ -z "${{ secrets.MODEL_ARTIFACT_URL }}" ]; then
+            echo "Missing MODEL_ARTIFACT_URL secret" >&2
+            exit 1
+          fi
+          curl -L -o /tmp/model.zip "${{ secrets.MODEL_ARTIFACT_URL }}"
+          unzip -q -d /tmp/models /tmp/model.zip
+
+      - name: Download model from GitHub Release (optional)
+        if: ${{ secrets.MODEL_ARTIFACT_SOURCE == 'github_release' }}
+        run: |
+          echo "Downloading model from GitHub Release using gh"
+          gh release download "${{ secrets.MODEL_RELEASE_TAG }}" --repo "${{ secrets.MODEL_RELEASE_REPO }}" --pattern "${{ secrets.MODEL_RELEASE_ASSET }}" --dir /tmp/models
+
+      - name: Download model from S3 (optional)
+        if: ${{ secrets.MODEL_ARTIFACT_SOURCE == 's3' }}
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: S3 copy model artifact (optional)
+        if: ${{ secrets.MODEL_ARTIFACT_SOURCE == 's3' }}
+        run: |
+          if [ -z "${{ secrets.MODEL_S3_URI }}" ]; then
+            echo "Missing MODEL_S3_URI secret" >&2
+            exit 1
+          fi
+          aws s3 cp "${{ secrets.MODEL_S3_URI }}" /tmp/model.zip
+          unzip -q -d /tmp/models /tmp/model.zip
+
+      - name: Normalize extracted layout (unwrap single top-level folder)
+        run: |
+          # If /tmp/models contains exactly one directory and no files at top-level, move its contents up
+          entries=(/tmp/models/*)
+          dircount=0
+          filecount=0
+          for e in "${entries[@]}"; do
+            if [ -d "$e" ]; then dircount=$((dircount+1)); fi
+            if [ -f "$e" ]; then filecount=$((filecount+1)); fi
+          done
+          if [ $dircount -eq 1 ] && [ $filecount -eq 0 ]; then
+            topdir=$(ls -1 /tmp/models | head -n1)
+            echo "Normalizing: moving contents of /tmp/models/$topdir up to /tmp/models"
+            shopt -s dotglob
+            mv /tmp/models/$topdir/* /tmp/models/ || true
+            rmdir /tmp/models/$topdir || true
+          else
+            echo "No normalization needed (dirs=$dircount files=$filecount)"
+          fi
+
+      - name: Validate model layout
+        run: |
+          if [ ! -f "/tmp/models/model.onnx" ] && [ ! -f "/tmp/models/tokenizer.json" ]; then
+            echo "❌ Model layout invalid: expected model.onnx or tokenizer.json in /tmp/models" >&2
+            ls -R /tmp/models || true
+            exit 1
+          fi
+
+      - name: Run Maven tests with model path (expect ONNX)
+        env:
+          CODE_TALKER_MODEL_PATH: /tmp/models
+        run: mvn -DskipTests=false -Dembed.shim.requireLoaded=true -Dembed.shim.expectRuntime=onnx verify

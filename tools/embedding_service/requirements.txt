@@ -1,0 +1,11 @@
+fastapi
+uvicorn
+onnxruntime
+numpy
+
+# Pin torch to a tested CPU wheel
+torch==2.6.0
+
+# Sentence-transformers pinned; pip will resolve compatible transformers/tokenizers transitively
+sentence-transformers==2.2.2
+prometheus_client

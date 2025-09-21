@@ -45,6 +45,18 @@ This file records every change made to `pom.xml` in the `FeH-001` branch and the
   - Change: Replaced TensorFlow TFLite dependencies in `pom.xml` with `org.tensorflow:tensorflow-core-platform:0.4.0` (full TensorFlow Java distribution).
   - Rationale: Attempt to bring in the full TensorFlow Java runtime (including native libs) in a single dependency to avoid fragmented artifacts and relocations.
   - Next: Running `mvn -U -DskipTests=false clean test` to resolve and run tests; outcome will be appended.
+ 
+- 2025-09-19T14:35:00-05:00 — assistant
+  - Change: Added `argLine` JVM option `--add-opens java.base/java.lang=ALL-UNNAMED` to both the `maven-surefire-plugin` and `maven-failsafe-plugin` configurations in `pom.xml` so tests that reflectively access `java.lang.ProcessEnvironment` can run under Java 9+ strong encapsulation.
+  - Change: Improved `EmbedServiceIntegrationTestIT` to probe `127.0.0.1:8000` first and otherwise start the Python embedding shim on an ephemeral free TCP port; shim logs are now written with a port-specific filename to avoid collisions.
+  - Rationale: Fix `InaccessibleObjectException` seen when running tests on Java 21 and make the embedding-shim startup robust to port collisions on developer machines and CI.
+  - Outcome: Ran `mvn -Pwith-tensorflow -Dcodetalker.model.path=src/main/resources/models/universal-sentence-encoder-lite.tflite verify` — tests passed (BUILD SUCCESS). See target/failsafe-reports for detailed outputs.
+  - Next: Consider adding CI-level guidance for running with `-Pci-no-shim` when an external shim is provided, and document the test harness behavior in `docs/TESTING.md`.
+
+- 2025-09-19T14:40:00-05:00 — assistant
+  - Change: Recorded integration artifacts and summary in `docs/INTEGRATION_RESULTS.md`; shim logs indicating intermittent port-bind failures (winerror 10048) were captured and addressed in the test harness.
+  - Rationale: Keep an auditable summary of CI/integration runs and the reasoning for recent test harness changes.
+  - Outcome: `docs/INTEGRATION_RESULTS.md` added with pointers to `target/failsafe-reports` and recommended next steps.
 
 
 

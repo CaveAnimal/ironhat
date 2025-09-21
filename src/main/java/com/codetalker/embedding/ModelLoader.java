@@ -23,11 +23,65 @@ public class ModelLoader {
 
     public ModelLoader() {
         this.mockMode = Boolean.getBoolean("codetalker.model.mock");
+        // Resolve model path priority:
+        // 1) JVM system property `code.talker.model.path`
+        // 2) Environment variable `CODE_TALKER_MODEL_PATH`
+        // 3) configuredPath passed into constructor (if any)
+        // 4) repository default `src/main/resources/models` (development convenience)
+        String sys = System.getProperty("code.talker.model.path");
+        if (sys != null && !sys.isBlank()) {
+            this.configuredPath = Path.of(sys);
+            logger.info("Using model path from system property: {}", sys);
+        } else {
+            String env = System.getenv("CODE_TALKER_MODEL_PATH");
+            if (env != null && !env.isBlank()) {
+                this.configuredPath = Path.of(env);
+                logger.info("Using model path from CODE_TALKER_MODEL_PATH: {}", env);
+            } else {
+                // fallback to repo path if present
+                Path repoDefault = Path.of("src", "main", "resources", "models");
+                if (Files.exists(repoDefault)) {
+                    this.configuredPath = repoDefault;
+                    logger.info("Using repository model path: {}", repoDefault.toString());
+                }
+            }
+        }
     }
 
     public ModelLoader(String path) {
         this.mockMode = Boolean.getBoolean("codetalker.model.mock");
-        this.configuredPath = path == null ? null : Path.of(path);
+        if (path != null) {
+            this.configuredPath = Path.of(path);
+        } else {
+            String sys = System.getProperty("code.talker.model.path");
+            if (sys != null && !sys.isBlank()) {
+                this.configuredPath = Path.of(sys);
+            } else {
+                String env = System.getenv("CODE_TALKER_MODEL_PATH");
+                if (env != null && !env.isBlank()) {
+                    this.configuredPath = Path.of(env);
+                } else {
+                    Path repoDefault = Path.of("src", "main", "resources", "models");
+                    if (Files.exists(repoDefault)) this.configuredPath = repoDefault;
+                }
+            }
+        }
+    }
+
+    /**
+     * DI-friendly constructor that accepts a resolved Path directly.
+     */
+    public ModelLoader(Path path) {
+        this.mockMode = Boolean.getBoolean("codetalker.model.mock");
+        this.configuredPath = path;
+    }
+
+    /**
+     * Factory helper: construct a ModelLoader using env/sys resolution but allow overriding with an explicit Path.
+     */
+    public static ModelLoader fromPathOrEnv(Path explicit) {
+        if (explicit != null) return new ModelLoader(explicit);
+        return new ModelLoader();
     }
 
     public boolean isMock() { return mockMode; }
@@ -64,21 +118,25 @@ public class ModelLoader {
                             byte[] bytes = java.nio.file.Files.readAllBytes(f.toPath());
                             ctorArg = bytes; chosen = c; break;
                         }
-                    } catch (Throwable t) {
-                        // ignore and try other constructors
+                    } catch (java.io.IOException ioe) {
+                        // IO error reading file for this constructor, try other constructors
                     }
                 }
             }
             if (chosen != null) {
-                interpreterInstance = chosen.newInstance(ctorArg);
-                loaded = true;
-                logger.info("Initialized TensorFlow Lite Interpreter reflectively (flexible)");
-                return true;
+                try {
+                    interpreterInstance = chosen.newInstance(ctorArg);
+                    loaded = true;
+                    logger.info("Initialized TensorFlow Lite Interpreter reflectively (flexible)");
+                    return true;
+                } catch (ReflectiveOperationException | IllegalArgumentException roe) {
+                    logger.warn("TFLite interpreter instantiation failed (ignored)", roe);
+                }
             }
         } catch (ClassNotFoundException cnf) {
             // TFLite not present - that's fine
-        } catch (Exception e) {
-            logger.warn("TFLite interpreter init failed (ignored)", e);
+        } catch (ReflectiveOperationException roe) {
+            logger.warn("TFLite reflective probing failed (ignored)", roe);
         }
 
         try {
@@ -103,8 +161,8 @@ public class ModelLoader {
             }
         } catch (ClassNotFoundException cnf) {
             // full TF not present - ok
-        } catch (Exception e) {
-            logger.warn("SavedModelBundle init failed (ignored)", e);
+        } catch (ReflectiveOperationException roe) {
+            logger.warn("SavedModelBundle reflective init failed (ignored)", roe);
         }
 
         // If no TF runtime available, treat file-presence as success

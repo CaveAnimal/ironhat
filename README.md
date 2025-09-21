@@ -54,39 +54,24 @@ This indicates that for `m=8` the `ef=200` row was picked because it had the hig
 
 If you prefer the summarizer to fail-to-select instead of using the fallback, omit the `-bestByMaxRecall` flag when invoking the summarizer.
 
-Running TF integration tests (quick guide)
-----------------------------------------
-
-1) Enable the profile and run the integration/verification phase (PowerShell):
+Packaging models in a release
+-----------------------------
+If you need to intentionally include model artifacts in your packaged jar, enable the explicit `package-models` profile:
 
 ```powershell
-mvn -Pwith-tensorflow -Dcodetalker.model.path="C:\absolute\path\to\saved_model" verify
-# or equivalently
-mvn -DwithTensorFlow=true -Dcodetalker.model.path="C:\absolute\path\to\saved_model" verify
+# Build artifact including models (explicit, opt-in)
+mvn -Ppackage-models -DskipTests=false package
 ```
 
-Notes:
-- `-Pwith-tensorflow` activates the `with-tensorflow` profile which adds the TensorFlow Java platform dependency and sets `tf.integration.enabled=true` for tests. The integration test skeleton `TFSavedModelIntegrationTest` checks that property and will be skipped when the profile is not active.
-- `-Dcodetalker.model.path` should point to a directory containing a SavedModel (the same layout `SavedModelBundle.load(path)` expects) or to a TFLite file if you adapt tests.
+Use this only when you really intend to distribute models inside the artifact. Default builds exclude `src/main/resources/models/**` to avoid large jars and Windows file-lock issues.
 
-2) Obtaining compatible TensorFlow artifacts and models
+Runtime assertion note (integration tests)
+----------------------------------------
+The integration test harness now supports opt-in assertions against the embedding shim's `/metrics` endpoint. You can make CI require that the shim has initialized a real runtime by adding system properties to the Maven invocation:
 
-- Use the `org.tensorflow:tensorflow-core-platform` artifact that the profile declares. This artifact pulls platform-specific native libs; Maven will download the correct native classifier for your OS/arch when available.
-- If you need GPU support or a particular native build, obtain the matching TensorFlow Java native package from the TensorFlow maven artifacts (Google Maven) or build the native libs from source. Platform mismatches commonly cause `UnsatisfiedLinkError` at runtime.
-- For quick local testing, use small SavedModel exports compatible with the TF Java version (e.g., a simple TF 2.x SavedModel that accepts a 1-D float tensor and returns a 1-D float vector). You can export small test models from Python with:
-
-```python
-import tensorflow as tf
-
-# simple model: identity mapping for a given size
-inp = tf.keras.Input(shape=(16,))
-out = tf.keras.layers.Dense(16, use_bias=False, kernel_initializer=tf.keras.initializers.Identity())(inp)
-model = tf.keras.Model(inputs=inp, outputs=out)
-model.save('/tmp/simple_saved_model')
+```powershell
+# require the shim to have loaded a runtime and expect the sentence-transformers runtime
+mvn -DskipTests=false -Dembed.shim.requireLoaded=true -Dembed.shim.expectRuntime=st test
 ```
 
-3) Troubleshooting checklist
-
-- If you see `UnsatisfiedLinkError`: check the native classifier Maven downloaded (look in your local repo under `org/tensorflow`), and ensure it matches your OS/arch. Consider specifying an explicit platform classifier or using the `tensorflow-native` artifact that matches your environment.
-- If reflective methods (e.g., `session`, `runner`, `run`) are not found: your TF Java API version may differ; open an interactive REPL and inspect the API or share the exact TF Java version and I can add additional reflective code paths.
-- If you don't want to install native libs, use `-Dcodetalker.model.mock=true` to run unit tests with the test stubs and in-JVM fallback.
+These properties are intentionally opt-in so default developer runs remain tolerant of the shim's deterministic fake fallback.
