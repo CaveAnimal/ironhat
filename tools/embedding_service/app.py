@@ -23,6 +23,7 @@ from pathlib import Path
 from typing import List, Optional, Tuple
 
 from fastapi import FastAPI, HTTPException, Response
+from contextlib import asynccontextmanager
 from pydantic import BaseModel
 
 import logging
@@ -34,9 +35,30 @@ except Exception:
     _PROM_AVAILABLE = False
 
 
-app = FastAPI()
 logger = logging.getLogger("embedding_shim")
 logging.basicConfig(level=logging.INFO, format="[%(asctime)s] %(levelname)s %(name)s: %(message)s")
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Lifespan handler: resolve model path and start background loader on startup, log on shutdown."""
+    global _model_path
+    _model_path = resolve_model_path(None, None)
+    logger.info(f"lifespan startup: resolved model_path={_model_path}")
+    try:
+        import threading
+
+        t = threading.Thread(target=_background_load, daemon=True)
+        t.start()
+    except Exception:
+        logger.exception("failed to start background loader")
+    try:
+        yield
+    finally:
+        logger.info("lifespan shutdown: embedding shim stopping")
+
+
+app = FastAPI(lifespan=lifespan)
 
 # Prometheus metrics (optional; if prometheus_client is not installed the import will fail at startup)
 if _PROM_AVAILABLE:
@@ -186,13 +208,15 @@ def health():
 @app.get("/metrics")
 def prometheus_metrics():
     try:
-        METRIC_RUNTIME_LOADED.set(1 if _runtime_loaded else 0)
-        data = generate_latest(registry)
-        return Response(content=data, media_type=CONTENT_TYPE_LATEST)
-    except Exception as e:
-        # Fallback to simple metrics JSON when prometheus_client isn't available
+        if _PROM_AVAILABLE and registry is not None:
+            METRIC_RUNTIME_LOADED.set(1 if _runtime_loaded else 0)
+            data = generate_latest(registry)
+            return Response(content=data, media_type=CONTENT_TYPE_LATEST)
+        # Fallback JSON when prometheus_client is not available
         return {"runtime": "st" if _st_model is not None else ("onnx" if _onnx_session is not None else None),
                 "loaded": _runtime_loaded}
+    except Exception:
+        return {"runtime": None, "loaded": _runtime_loaded}
 
 
 @app.get("/ready")
@@ -225,26 +249,7 @@ def ready(timeout: int = 30):
     return {"ready": False, "note": "timed out waiting for runtime; fallback may be used"}
 
 
-@app.get("/metrics")
-@app.on_event("startup")
-def _on_startup():
-    global _model_path, _runtime_loaded, _runtime_error
-    # Resolve model path from env/args (if provided by CLI wrapper)
-    _model_path = resolve_model_path(None, None)
-    logger.info(f"startup: resolved model_path={_model_path}")
-    try:
-        # Kick off background initialization in a thread so startup is non-blocking
-        import threading
-
-        t = threading.Thread(target=_background_load, daemon=True)
-        t.start()
-    except Exception:
-        logger.exception("failed to start background loader")
-
-
-@app.on_event("shutdown")
-def _on_shutdown():
-    logger.info("shutting down embedding shim")
+# lifespan handler defined earlier replaces startup/shutdown handlers
 
 
 
