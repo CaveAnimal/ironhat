@@ -165,6 +165,7 @@ def render_markdown(todos: List[dict], actor: Optional[str]) -> str:
     lines.append("Last synced: " + _central_time_str() + f" — ran by {actor_line}")
     lines.append("")
     lines.append("```")
+    # Note: change summary will be appended after the code block by the caller
     return "\n".join(lines)
 
 
@@ -189,11 +190,63 @@ def main() -> None:
 
     md = render_markdown(data, args.actor)
 
+    # Attempt to compute a short change summary vs previous snapshot (if available)
+    prev_snap_path = Path("tools/manage_todo_list_snapshot.prev.json")
+    changes: List[str] = []
+    try:
+        if prev_snap_path.exists():
+            prev = json.loads(prev_snap_path.read_text(encoding="utf-8"))
+        else:
+            prev = []
+    except Exception:
+        prev = []
+
+    # Build index by id for easy comparison
+    prev_index = {int(item.get("id")): item for item in (prev or [])}
+    curr_index = {int(item.get("id")): item for item in (data or [])}
+
+    # Detect added and removed
+    for cid, item in curr_index.items():
+        if cid not in prev_index:
+            changes.append(f"Added: {item.get('title','(no title)')} (id={cid})")
+    for pid, item in prev_index.items():
+        if pid not in curr_index:
+            changes.append(f"Removed: {item.get('title','(no title)')} (id={pid})")
+
+    # Detect status changes
+    for cid, item in curr_index.items():
+        if cid in prev_index:
+            prev_item = prev_index[cid]
+            prev_status = (prev_item.get('status') or '').lower()
+            curr_status = (item.get('status') or '').lower()
+            if prev_status != curr_status:
+                changes.append(f"Status changed: {item.get('title','(no title)')} (id={cid}) {prev_status} -> {curr_status}")
+
+    # Compose final markdown: main block + change summary section
+    final_md_parts = [md]
+    final_md_parts.append("")
+    final_md_parts.append("## Recent internal todo changes")
+    if not changes:
+        final_md_parts.append("- No changes since last sync.")
+    else:
+        for c in changes[:20]:
+            final_md_parts.append(f"- {c}")
+
+    final_md = "\n".join(final_md_parts) + "\n"
+
     # Atomic write: write to temporary then rename
     tmp = out.with_suffix(".tmp")
-    tmp.write_text(md, encoding="utf-8")
+    tmp.write_text(final_md, encoding="utf-8")
     tmp.replace(out)
     print("Wrote", out)
+
+    # Save current snapshot as previous for next run (best-effort)
+    try:
+        Path("tools").mkdir(parents=True, exist_ok=True)
+        prev_snap_path.write_text(json.dumps(data, indent=2), encoding="utf-8")
+    except Exception:
+        # non-fatal; we already wrote the main output
+        pass
 
 
 if __name__ == "__main__":

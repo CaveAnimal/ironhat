@@ -115,6 +115,28 @@ This file records every change made to `pom.xml` in the `FeH-001` branch and the
   - Rationale: Some official TensorFlow Lite artifacts have been relocated or are not available in Maven Central/Google Maven for certain versions; Bytedeco provides a platform bundle that includes native binaries and can simplify local resolution for developer machines. This is a fallback and may be removed once official artifacts or a supported coordinate set is found.
   - Next: Attempt build again to see if Bytedeco artifacts resolve.
 
+- 2025-09-21T16:23:00-05:00 — assistant
+  - Change: Replaced `org.tensorflow:tensorflow-lite`/`tensorflow-lite-api` coordinates in the `with-tensorflow` profile with relocated Google `com.google.ai.edge.litert:litert` and `com.google.ai.edge.litert:litert-api` (version `1.0.1`). Added repository entries for `https://maven.bytedeco.org` and Sonatype OSS staging and the Google AI artifact repository where applicable to help resolve relocated artifacts and Bytedeco platform bundles.
+  - Rationale: Several TensorFlow Lite artifacts have been relocated and/or are not resolvable from Maven Central. Using the relocated `litert` coordinates and adding Bytedeco/Sonatype/Google repositories increases the likelihood of dependency resolution on developer machines and CI.
+  - Outcome: `pom.xml` updated. Build re-attempt will follow; if resolution still fails, consider pinning alternative artifact versions or documenting a manual local install step.
+  - Files changed: `pom.xml`
+  - AppliedBy: assistant
+  - Notes: This change is conservative (only affects the `with-tensorflow` profile) and is reversible if it causes undesired repository exposure.
+
+- 2025-09-21T16:36:00-05:00 — assistant
+  - Change: Removed the `org.bytedeco:tensorflow-lite-platform` fallback dependency from the `with-tensorflow` profile to avoid build failures when Bytedeco's Maven host is unreachable.
+  - Rationale: The Bytedeco repository was not reachable from the build environment and caused dependency collection to fail. Removing the fallback isolates verification to the relocated `litert` artifacts and prevents external host dependency during resolution attempts.
+  - Outcome: `pom.xml` updated; next step is to re-run Maven to check whether the `litert` artifacts resolve from configured repositories.
+  - Files changed: `pom.xml`
+  - AppliedBy: assistant
+
+- 2025-09-21T16:40:00-05:00 — assistant
+  - Change: Removed the relocated `com.google.ai.edge.litert:litert` and `litert-api` dependencies from the `with-tensorflow` profile.
+  - Rationale: The `litert` coordinates were not resolvable from the configured public repositories in the current environment. The project already includes `org.tensorflow:tensorflow-core-platform:0.4.0` in the same profile which provides the TensorFlow Java runtime; prefer that bundled artifact or a pinned, known-good TFLite artifact instead of unresolved relocations.
+  - Outcome: `pom.xml` updated. Next: re-run `mvn -U -Pwith-tensorflow` to verify resolution using `tensorflow-core-platform`. If resolution still fails, we will consider documenting a manual local artifact install or pinning alternative coordinates.
+  - Files changed: `pom.xml`
+  - AppliedBy: assistant
+
 
 
 

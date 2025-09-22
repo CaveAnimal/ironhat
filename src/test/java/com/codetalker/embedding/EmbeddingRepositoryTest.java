@@ -16,7 +16,7 @@ import com.codetalker.storage.DatabaseManager;
 
 class EmbeddingRepositoryTest {
     private DatabaseManager dbManager;
-    private EmbeddingRepository repo;
+    private com.codetalker.embedding.EmbeddingStore repo;
 
     @BeforeEach
     void setUp() throws Exception {
@@ -26,7 +26,7 @@ class EmbeddingRepositoryTest {
         }
     String testDbPath = "./test-data/repo-embeddings-" + System.currentTimeMillis();
     dbManager = new DatabaseManager(testDbPath);
-        repo = new EmbeddingRepository(dbManager);
+    repo = new com.codetalker.embedding.EmbeddingBinaryRepository(dbManager);
     }
 
     @AfterEach

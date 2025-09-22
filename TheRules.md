@@ -23,6 +23,41 @@ Required behavior for the assistant:
 	Where `<actor>` is the name of the user or assistant that initiated the sync (for assistant runs use `assistant`).
 
 This rule is mandatory: the assistant will not finish any interaction in which it changed its internal todo list without running the sync and writing the changelog line.
+
+Assistant responsibility for syncing todos
+-----------------------------------------
+- The assistant (this agent) is explicitly responsible for mirroring its internal `manage_todo_list` state into the on-disk file `ironhat_TODO.md`.
+- Immediately after any change to the internal todo list (create/update/complete/defer), the assistant must:
+	1. Run the todo sync helper (`python tools/sync_todos.py` or `tools/sync_todos.ps1`) from the repository root.
+	2. Verify `ironhat_TODO.md` was written and that the top-line changelog shows the current US Central Time and `— ran by assistant` as the actor.
+	3. If the sync fails or the file was not updated, the assistant must retry and surface the error in its message until the sync succeeds.
+
+This requirement means the assistant owns the fidelity of the on-disk todo mirror and will keep `ironhat_TODO.md` up-to-date with its internal plan without user intervention.
+ 
+ToDo file requirements
+----------------------
+- The project maintains a dedicated assistant-managed on-disk todo file: `ironhat_TODO.md`.
+- Every time the assistant writes or updates `ironhat_TODO.md`, the file MUST include a single-line changelog at the top of the file with the current timestamp (in US Central Time) and the actor who performed the sync.
+- The changelog line MUST use this exact format (24-hour vs AM/PM may be used but the example below is preferred):
+
+		Last synced: YYYY-MM-DD hh:mm:ss AM/PM CDT — ran by <actor>
+
+	- `<actor>` must be `assistant` when the assistant performed the sync, or a user name when a human ran the sync.
+	- The timestamp must reflect the wall-clock time at which the file was actually written and must be updated on every sync operation (no stale timestamps allowed).
+	- The assistant must NOT fabricate or reuse an earlier timestamp; always use the current time at the moment of writing.
+
+- Implementation notes for the assistant:
+	- Preferred invocation: `python tools/sync_todos.py` from the repository root.
+	- Windows-friendly invocation: use the PowerShell wrapper `tools/sync_todos.ps1` which performs the same operation.
+	- The assistant should capture and log the success message printed by the wrapper/script and ensure the changelog line was written into `ironhat_TODO.md` before finishing a message that modified its internal todo list.
+
+Test environment note
+---------------------
+- This repository and its automated tests use an embedded H2 database (in-memory or file-backed) for testing and development. There is no PostgreSQL test environment provisioned in the workspace by default. Any features that rely on Postgres-specific behavior (for example, advisory locks) are implemented as best-effort fallbacks and will not be exercised in the standard test suite unless a Postgres instance is explicitly provided and configured.
+
+Project scope note
+------------------
+- This project is currently developed as a desktop application. By default, there is no expectation to provision Docker containers or a Postgres server for development or CI. Any work requiring Docker or Postgres must be explicitly requested and added as an optional integration rather than a required part of development.
  
 New mandatory behavior (assistant-run sync on messages)
 ----------------------------------------------------

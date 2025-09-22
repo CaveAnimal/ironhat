@@ -13,7 +13,7 @@ import com.codetalker.storage.DatabaseManager;
 
 class VectorSearchServiceTest {
     private DatabaseManager dbManager;
-    private EmbeddingRepository repo;
+    private com.codetalker.embedding.EmbeddingStore repo;
     private VectorSearchService svc;
 
     @BeforeEach
@@ -24,7 +24,7 @@ class VectorSearchServiceTest {
         }
         String testDbPath = "./test-data/search-embeddings-" + System.currentTimeMillis();
         dbManager = new DatabaseManager(testDbPath);
-        repo = new EmbeddingRepository(dbManager);
+    repo = new com.codetalker.embedding.EmbeddingBinaryRepository(dbManager);
         svc = new VectorSearchService(repo);
 
         // seed with three simple 3-d vectors

@@ -11,7 +11,7 @@ public class VectorSearchServiceJelmerkIntegrationTest {
     @Test
     public void integrationSmoke() throws Exception {
     DatabaseManager db = new DatabaseManager("./test-data/integration-embeddings");
-        EmbeddingRepository repo = new EmbeddingRepository(db);
+    com.codetalker.embedding.EmbeddingStore repo = new com.codetalker.embedding.EmbeddingBinaryRepository(db);
 
         // create and persist a few embeddings
     Embedding a = new Embedding();

@@ -75,3 +75,67 @@ mvn -DskipTests=false -Dembed.shim.requireLoaded=true -Dembed.shim.expectRuntime
 ```
 
 These properties are intentionally opt-in so default developer runs remain tolerant of the shim's deterministic fake fallback.
+
+IndexManager (rebuild and snapshot)
+----------------------------------
+`IndexManager` is a small CLI tool and dev HTTP endpoint to rebuild the HNSW index from persisted embeddings and persist a snapshot to disk.
+
+Usage examples:
+
+Run once from the CLI (detects vector dimension from DB metadata if available):
+
+```powershell
+java -cp target/code-talker-2.0.0-SNAPSHOT.jar com.codetalker.embedding.IndexManager --db ./data/mydb --out ./data/index.snap --dim 128
+```
+
+Start with an HTTP endpoint to trigger rebuilds remotely (dev only):
+
+```powershell
+java -cp target/code-talker-2.0.0-SNAPSHOT.jar com.codetalker.embedding.IndexManager --db ./data/mydb --out ./data/index.snap --http 8111
+# then from another shell
+Invoke-RestMethod http://localhost:8111/rebuild
+```
+
+CLI flags:
+- `--db <path>` (required): database file/folder used by `DatabaseManager`.
+- `--out <path>` (required): output snapshot path to write the index.
+- `--http <port>` (optional): start a small HTTP server exposing `/rebuild` to trigger rebuilds.
+- `--dim <n>` (optional): force vector dimensionality (auto-detected from `metadata` if omitted).
+- `--m <n>` and `--ef <n>` (optional): HNSW index parameters; defaults are `m=16`, `ef=10`.
+
+Operational notes:
+- The HTTP endpoint triggers rebuilds asynchronously and prevents overlapping rebuilds in the same process using a simple in-memory lock. For production or multi-process setups, use an external lock (DB row, filesystem lock, or service coordinator).
+- The adapter reads vectors in ID-ordered batches (default batch size 1000) to avoid scanning the entire id range and to limit memory usage. For very large datasets, consider increasing the batch size or implementing more advanced batching/parallel ingestion.
+- The snapshot format is deterministic and can be loaded back using `JelmerkAnnIndex.loadFrom` or `JelmerkAnnIndex.loadFrom` via the project's API.
+
+
+## Local development (H2) & IndexManager
+
+This project uses an embedded H2 database for local development and testing by default. We intentionally avoid Postgres or Docker provisioning for the default desktop-app workflow. If you need Postgres later, request it explicitly and we'll add an optional profile and integration instructions.
+
+Key points:
+
+- Flyway migrations run automatically when the application or tests create a `DataSource` via `DatabaseManager`.
+- Embeddings are stored in the `embeddings` table (see `src/main/resources/db/migration/V1__create_embeddings.sql`) with the vector stored as a binary BLOB and metadata as CLOB.
+
+Running the `IndexManager` CLI (rebuild index from DB and persist snapshot):
+
+PowerShell examples (run from repository root):
+
+```
+# Build the project
+mvn -DskipTests=false package
+
+# Rebuild index and persist to file (example output path)
+java -jar target/code-talker-2.0.0-SNAPSHOT.jar index --db jdbc:h2:./data/ironhat-db --out ./target/index-snapshot.bin
+
+# Run IndexManager with HTTP server enabled (listens on configured port, provides /rebuild endpoint)
+java -jar target/code-talker-2.0.0-SNAPSHOT.jar index --db jdbc:h2:./data/ironhat-db --out ./target/index-snapshot.bin --http --port 8080
+
+```
+
+Notes:
+
+- The CLI accepts `--batch-size` and `--fetch-size` to tune how many vectors are loaded per DB round-trip; defaults are safe for typical desktop workloads.
+- If you pass a `--lock-file` the process will attempt a file-based lock to avoid concurrent rebuilds across processes. Postgres advisory locks are not required for local H2 development and are intentionally not used by default.
+

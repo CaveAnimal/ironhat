@@ -300,7 +300,8 @@ class IntegrationTestSuite {
         // Initialize components
         databaseManager = new DatabaseManager(TEST_DB_PATH);
         embeddingService = new EmbeddingService();
-        embeddingRepository = new EmbeddingRepository(databaseManager);
+    // Use the binary-backed store (BLOB vectors) by default
+    embeddingRepository = new com.codetalker.embedding.EmbeddingBinaryRepository(databaseManager);
         vectorIndex = new VectorIndex(512, TEST_INDEX_PATH); // 512 = USE embedding dimension
         
         // Initialize embedding service

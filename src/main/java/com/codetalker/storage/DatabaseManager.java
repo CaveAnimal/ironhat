@@ -22,6 +22,7 @@ public class DatabaseManager {
 
     private final DataSource dataSource;
     private final String databasePath;
+    private final String jdbcUrl;
 
     public DatabaseManager() {
         this(DEFAULT_DB_PATH);
@@ -30,25 +31,17 @@ public class DatabaseManager {
     public DatabaseManager(String databasePath) {
         this.databasePath = databasePath;
         this.dataSource = initializeDataSource(databasePath);
+        this.jdbcUrl = computeJdbcUrl(databasePath);
         initializeSchema();
     }
 
     private DataSource initializeDataSource(String databasePath) {
         JdbcDataSource ds = new JdbcDataSource();
-        String useInMemory = System.getProperty("test.h2.inmemory");
-        String jdbcUrl;
-        if ("true".equalsIgnoreCase(useInMemory)) {
-            // Use a unique in-memory database name per DatabaseManager instance to avoid test cross-talk
-            String safeName = databasePath == null ? "testdb" : databasePath.replaceAll("[^A-Za-z0-9]", "_");
-            String unique = java.util.UUID.randomUUID().toString().replaceAll("-", "");
-            jdbcUrl = String.format("jdbc:h2:mem:%s_%s;DB_CLOSE_DELAY=-1;DATABASE_TO_UPPER=FALSE;MODE=REGULAR", safeName, unique);
-        } else {
-            jdbcUrl = String.format("jdbc:h2:file:%s;DB_CLOSE_DELAY=-1;DATABASE_TO_UPPER=FALSE;MODE=REGULAR", databasePath);
-        }
-        ds.setURL(jdbcUrl);
+        String jdbc = computeJdbcUrl(databasePath);
+        ds.setURL(jdbc);
         ds.setUser(DB_USER);
         ds.setPassword(DB_PASSWORD);
-        logger.info("Configured H2 DataSource with URL {} (requested path={})", jdbcUrl, databasePath);
+    logger.info("Configured H2 DataSource with URL {} (requested path={})", jdbc, databasePath);
         // Run Flyway migrations against this DataSource so the schema is versioned and repeatable
         try {
             org.flywaydb.core.Flyway flyway = org.flywaydb.core.Flyway.configure().dataSource(ds).load();
@@ -57,6 +50,52 @@ public class DatabaseManager {
             logger.warn("Flyway migration failed or not applicable: {}", e.getMessage());
         }
         return ds;
+    }
+
+    private String computeJdbcUrl(String databasePath) {
+        String useInMemory = System.getProperty("test.h2.inmemory");
+        if ("true".equalsIgnoreCase(useInMemory)) {
+            String safeName = databasePath == null ? "testdb" : databasePath.replaceAll("[^A-Za-z0-9]", "_");
+            String unique = java.util.UUID.randomUUID().toString().replaceAll("-", "");
+            return String.format("jdbc:h2:mem:%s_%s;DB_CLOSE_DELAY=-1;DATABASE_TO_UPPER=FALSE;MODE=REGULAR", safeName, unique);
+        } else {
+            return String.format("jdbc:h2:file:%s;DB_CLOSE_DELAY=-1;DATABASE_TO_UPPER=FALSE;MODE=REGULAR", databasePath);
+        }
+    }
+
+    /**
+     * Return the JDBC URL used to configure the DataSource. Useful for driver/runtime detection.
+     */
+    public String getJdbcUrl() {
+        return jdbcUrl;
+    }
+
+    /**
+     * Try to detect the JDBC driver name from the configured DataSource URL.
+     */
+    public String getDriverName() {
+        // First try JDBC metadata if a live connection is possible
+        try (Connection c = getConnection()) {
+            try {
+                String product = c.getMetaData().getDatabaseProductName();
+                if (product == null) product = "";
+                product = product.toLowerCase();
+                if (product.contains("postgres")) return "postgresql";
+                if (product.contains("mysql")) return "mysql";
+                if (product.contains("h2")) return "h2";
+            } catch (Exception ignored) {
+                // fall back to URL-based detection below
+            }
+        } catch (Exception ignored) {
+            // cannot open connection for metadata; fall back to URL detection
+        }
+
+        if (jdbcUrl == null) return "unknown";
+        String url = jdbcUrl.toLowerCase();
+        if (url.startsWith("jdbc:postgresql:")) return "postgresql";
+        if (url.startsWith("jdbc:mysql:")) return "mysql";
+        if (url.startsWith("jdbc:h2:")) return "h2";
+        return "unknown";
     }
 
     private void initializeSchema() {

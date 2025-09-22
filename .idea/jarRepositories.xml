@@ -22,6 +22,11 @@
       <option name="url" value="https://repo.maven.apache.org/maven2" />
     </remote-repository>
     <remote-repository>
+      <option name="id" value="bytedeco" />
+      <option name="name" value="Bytedeco Maven" />
+      <option name="url" value="https://maven.bytedeco.org" />
+    </remote-repository>
+    <remote-repository>
       <option name="id" value="central" />
       <option name="name" value="Maven Central repository" />
       <option name="url" value="https://repo1.maven.org/maven2" />
@@ -30,6 +35,16 @@
       <option name="id" value="jboss.community" />
       <option name="name" value="JBoss Community repository" />
       <option name="url" value="https://repository.jboss.org/nexus/content/repositories/public/" />
+    </remote-repository>
+    <remote-repository>
+      <option name="id" value="sonatype-oss" />
+      <option name="name" value="Sonatype OSS Releases" />
+      <option name="url" value="https://oss.sonatype.org/content/repositories/releases/" />
+    </remote-repository>
+    <remote-repository>
+      <option name="id" value="google-ai" />
+      <option name="name" value="Google AI Maven" />
+      <option name="url" value="https://maven.google.com" />
     </remote-repository>
   </component>
 </project>

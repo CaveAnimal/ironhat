@@ -21,7 +21,7 @@ public class SearchSmokeTest {
         logger.info("Starting SearchSmokeTest");
 
         DatabaseManager db = new DatabaseManager("./test-data/smoke-embeddings-" + System.currentTimeMillis());
-        EmbeddingRepository repo = new EmbeddingRepository(db);
+    com.codetalker.embedding.EmbeddingStore repo = new com.codetalker.embedding.EmbeddingBinaryRepository(db);
 
         ModelLoader loader = new ModelLoader();
         // try to load default model if present (optional)

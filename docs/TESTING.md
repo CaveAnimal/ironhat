@@ -1,55 +1,64 @@
-# Testing and CI notes
+# Testing and Integration Guide
 
-This document contains testing guidance for the repository and examples for CI jobs that may need to exercise the embedding shim or require a specific embedding runtime.
+This document explains how to run unit and integration tests locally, with PowerShell-safe commands and fast troubleshooting tips.
 
-## Opt-in runtime assertions for the embedding shim
+Prerequisites
+- Java 21 (or the JDK used by the project). Ensure `JAVA_HOME` is set and `mvn -v` shows the expected JDK.
+- Maven 3.8+ installed and available on `PATH`.
+- Python (optional): used by the embedding shim. The project tests can auto-start the shim when needed.
 
-The Java integration test `EmbedServiceIntegrationTestIT` now queries the embedding shim's `/metrics` endpoint and supports optional, opt-in assertions that make CI stricter when you want to validate a real runtime is available.
+Common environment variables
+- `CODETALKER_MODEL_PATH` or `-Dcodetalker.model.path` -- path to a SavedModel or TFLite file to use for TF integration tests.
+- `HF_TOKEN` -- (optional) Hugging Face token for downloading HF model snapshots when needed.
 
-Available system properties (Maven -D):
+PowerShell-friendly commands
 
-- `embed.shim.requireLoaded` (boolean) — when `true`, the integration test will fail if `/metrics` reports `loaded: false`. Use this when your job provisions a real runtime (e.g., installs `sentence-transformers` or provides ONNX artifacts).
-- `embed.shim.expectRuntime` (string) — when set (examples: `st` or `onnx`), the integration test will fail if `/metrics` reports a different `runtime` value.
-
-By default these properties are not set and tests will only log `/metrics` for diagnostics. This keeps local developer runs and lightweight CI jobs tolerant of the shim's fake fallback.
-
-## Example: GitHub Actions job that requires the shim to have loaded a runtime
-
-This example assumes you provision a model or install the runtime in CI before running Maven. Replace the model provisioning step with your organization's secure artifact fetch.
-
-```yaml
-name: CI
-on: [push, pull_request]
-jobs:
-  test:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: Provision model artifacts
-        run: |
-          mkdir -p /tmp/models
-          # fetch and unpack your model(s) into /tmp/models
-          # e.g. curl -L -o /tmp/models/model.zip "${{ secrets.MODEL_ARTIFACT_URL }}" && unzip -d /tmp/models /tmp/models/model.zip
-      - name: Run Maven tests (require runtime)
-        env:
-          CODE_TALKER_MODEL_PATH: /tmp/models
-        run: |
-          mvn -DskipTests=false -Dembed.shim.requireLoaded=true -Dembed.shim.expectRuntime=st test
-```
-
-## Example: Windows PowerShell runner (local or CI) — require runtime
-
-PowerShell one-liner for CI or an ad-hoc job that sets the model path and requires the runtime:
+1) Run unit tests (PowerShell):
 
 ```powershell
-$env:CODE_TALKER_MODEL_PATH = 'E:\agents\models'
-mvn -DskipTests=false -Dembed.shim.requireLoaded=true -Dembed.shim.expectRuntime=st test
+Set-Location -LiteralPath 'E:\MyProjects\MyGitHubCopilot\ironhat\FeH-001'
+# Run unit tests only
+mvn test
 ```
 
-## Notes and troubleshooting
+2) Run integration tests that require TensorFlow/native artifacts
 
-- If you see failures with `embed.shim.requireLoaded=true`, check the shim logs in `target/failsafe-reports/EmbedServiceIntegrationTestIT-shim.log` or the console output prefixed with `[embed-shim-metrics]`.
-- For lightweight CI that should not install heavy runtimes, leave the properties unset and rely on the deterministic fake fallback for hermetic tests.
-- If you prefer ONNX in CI (lighter than PyTorch), package or provision the ONNX model files into `CODE_TALKER_MODEL_PATH` and set `embed.shim.expectRuntime=onnx`.
+PowerShell quoting for `-D` properties can be tricky. Preferred approach is to set an environment variable then pass it into Maven. Example (PowerShell):
 
-If you want, I can add a short GitHub Action that provisions an ONNX model artifact from a release asset and demonstrates a green run — tell me which model artifact URL or repository to use.
+```powershell
+Set-Location -LiteralPath 'E:\MyProjects\MyGitHubCopilot\ironhat\FeH-001'
+$env:CODETALKER_MODEL_PATH = 'E:\MyProjects\MyGitHubCopilot\ironhat\FeH-001\src\main\resources\models\universal-sentence-encoder-lite.tflite'
+mvn -Pwith-tensorflow -Dcodetalker.model.path="$env:CODETALKER_MODEL_PATH" verify
+```
+
+If PowerShell argument parsing still causes issues, use `cmd.exe` with stop-parsing to pass the `-D` literally (this is how I ran the integration in this environment):
+
+```powershell
+Set-Location -LiteralPath 'E:\MyProjects\MyGitHubCopilot\ironhat\FeH-001'
+cmd /c mvn -Pwith-tensorflow --% -Dcodetalker.model.path="E:\MyProjects\MyGitHubCopilot\ironhat\FeH-001\src\main\resources\models\universal-sentence-encoder-lite.tflite" verify
+```
+
+3) Force Maven to re-resolve dependencies
+
+```powershell
+cmd /c mvn -U -Pwith-tensorflow --% -Dcodetalker.model.path="E:\MyProjects\MyGitHubCopilot\ironhat\FeH-001\src\main\resources\models\universal-sentence-encoder-lite.tflite" verify
+```
+
+Troubleshooting tips
+- If Maven fails with dependency resolution errors that mention relocations (POM relocation to a different groupId), the artifact may not be published to Maven Central. Check `ironhat_POM_UPDATES.md` for prior notes or add the needed repository to `pom.xml`.
+- If a repository host (e.g., Bytedeco) is not reachable, remove or comment the related fallback dependency and re-run the build to isolate the failure.
+- If native library loading fails at runtime (UnsatisfiedLinkError) you may need platform-specific JNI binaries. The project attempts reflective fallbacks; if necessary, document a local install of the platform bundle into `~/.m2/repository`.
+- For embed-shim issues: the integration tests will attempt to contact `127.0.0.1:8000` and will auto-start the Python shim if it's not reachable. To run the shim manually:
+
+```powershell
+Set-Location -LiteralPath 'E:\MyProjects\MyGitHubCopilot\ironhat\FeH-001'
+# Example: start a shim (project contains scripts to download and run model shims)
+python tools/download_model.py --model all-MiniLM-L6-v2 --out src\main\resources\models\all-MiniLM-L6-v2
+# Then run the shim if available (this is example; integration tests auto-start their own shim by default)
+python -m some_shim_module --model-path src\main\resources\models\all-MiniLM-L6-v2
+```
+
+Recording issues
+- If you modify `pom.xml` to add repositories or dependencies, update `ironhat_POM_UPDATES.md` with the timestamp and rationale.
+
+If you want, I can add a short `scripts` helper that standardizes running the integration locally (PowerShell + cmd fallback). I can add it under `scripts/` and update the docs — say "add script" and I'll create it.

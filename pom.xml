@@ -82,7 +82,34 @@
             <name>Google Maven</name>
             <url>https://maven.google.com</url>
         </repository>
+        <repository>
+            <id>bytedeco</id>
+            <name>Bytedeco Maven</name>
+            <url>https://maven.bytedeco.org</url>
+        </repository>
+        <repository>
+            <id>sonatype-oss</id>
+            <name>Sonatype OSS Releases</name>
+            <url>https://oss.sonatype.org/content/repositories/releases/</url>
+        </repository>
+        <repository>
+            <id>google-ai</id>
+            <name>Google AI Maven</name>
+            <url>https://maven.google.com</url>
+        </repository>
     </repositories>
+    <pluginRepositories>
+        <pluginRepository>
+            <id>sonatype-oss</id>
+            <name>Sonatype OSS Releases</name>
+            <url>https://oss.sonatype.org/content/repositories/releases/</url>
+        </pluginRepository>
+        <pluginRepository>
+            <id>sonatype-snapshots</id>
+            <name>Sonatype OSS Snapshots</name>
+            <url>https://oss.sonatype.org/content/repositories/snapshots/</url>
+        </pluginRepository>
+    </pluginRepositories>
 
     <build>
         <resources>
@@ -169,23 +196,14 @@
                     <version>0.4.0</version>
                 </dependency>
                 <!-- TensorFlow Lite for Java: included in the profile so local builds opt-in to native artifacts -->
-                <dependency>
-                    <groupId>org.tensorflow</groupId>
-                    <artifactId>tensorflow-lite</artifactId>
-                    <version>2.17.0</version>
-                </dependency>
-                <dependency>
-                    <groupId>org.tensorflow</groupId>
-                    <artifactId>tensorflow-lite-api</artifactId>
-                    <version>2.17.0</version>
-                </dependency>
-                <!-- Fallback: Bytedeco platform which bundles native binaries for many platforms. Use only if official artifacts are unavailable. -->
-                <dependency>
-                    <groupId>org.bytedeco</groupId>
-                    <artifactId>tensorflow-lite-platform</artifactId>
-                    <version>2.7.0-1.5.8</version>
-                    <scope>compile</scope>
-                </dependency>
+                <!-- Removed explicit dependence on relocated 'litert' artifacts (com.google.ai.edge.litert)
+                     because these coordinates do not appear resolvable from configured public repositories in
+                     the current environment. Rely on `org.tensorflow:tensorflow-core-platform:0.4.0` (above) which
+                     bundles TensorFlow Java artifacts; if a TFLite-specific artifact is required later we will
+                     reintroduce it with a pinned, resolvable coordinate or document a manual install step. -->
+                <!-- Bytedeco fallback removed to avoid build failures when the Bytedeco repository is unreachable;
+                     if a platform bundle is required later we can add it back behind a profile or provide
+                     a documented manual installation step. -->
             </dependencies>
             <properties>
                 <!-- When running with TensorFlow enabled, set this property so any integration tests can detect it -->

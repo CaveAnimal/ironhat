@@ -9,7 +9,7 @@ import java.util.List;
 
 import com.codetalker.storage.DatabaseManager;
 
-public class EmbeddingRepository {
+public class EmbeddingRepository implements EmbeddingStore {
     private final DatabaseManager db;
 
     public EmbeddingRepository(DatabaseManager db) {

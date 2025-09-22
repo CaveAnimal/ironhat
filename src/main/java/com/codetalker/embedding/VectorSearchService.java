@@ -14,12 +14,12 @@ import org.slf4j.LoggerFactory;
  * computes cosine similarity with the query vector and returns top-K results.
  */
 public class VectorSearchService {
-    private final EmbeddingRepository repo;
+    private final EmbeddingStore repo;
     private final ObjectMapper mapper = new ObjectMapper();
     private final com.codetalker.ann.ApproxNearestNeighborIndex annIndex; // optional
     private static final Logger logger = LoggerFactory.getLogger(VectorSearchService.class);
 
-    public VectorSearchService(EmbeddingRepository repo) {
+    public VectorSearchService(EmbeddingStore repo) {
         this(repo, null);
     }
 
@@ -27,7 +27,7 @@ public class VectorSearchService {
      * Construct the service with an optional ANN index. If an ANN index is provided
      * the existing embeddings will be loaded into it for faster queries.
      */
-    public VectorSearchService(EmbeddingRepository repo, com.codetalker.ann.ApproxNearestNeighborIndex annIndex) {
+    public VectorSearchService(EmbeddingStore repo, com.codetalker.ann.ApproxNearestNeighborIndex annIndex) {
         this.repo = repo;
         this.annIndex = annIndex;
         if (this.annIndex != null) {
