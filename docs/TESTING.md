@@ -21,6 +21,18 @@ Set-Location -LiteralPath 'E:\MyProjects\MyGitHubCopilot\ironhat\FeH-001'
 mvn test
 ```
 
+Running a single test from PowerShell
+
+PowerShell's parsing can interfere with `-D` arguments when invoking Maven to run a single test by FQN. Use `cmd` with stop-parsing (`--%`) to ensure the `-Dtest=` value is passed literally. Example:
+
+```powershell
+Set-Location -LiteralPath 'E:\MyProjects\MyGitHubCopilot\ironhat\FeH-001'
+cmd /c mvn --% -Dtest=com.codetalker.embedding.EmbeddingBinaryRepositoryUpsertTest test
+```
+
+This pattern is also useful when you need to pass other `-D` system properties that PowerShell might otherwise reinterpret.
+
+
 2) Run integration tests that require TensorFlow/native artifacts
 
 PowerShell quoting for `-D` properties can be tricky. Preferred approach is to set an environment variable then pass it into Maven. Example (PowerShell):
