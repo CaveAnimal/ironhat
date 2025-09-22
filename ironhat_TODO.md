@@ -17,6 +17,9 @@ This file records the assistant's working todo items, their status, and short no
 - [ ] Add Java client snippet -- Add a Java example using `HttpClient` showing how to call the shim and parse float[][] vectors.
 - [x] Add embedding usage README -- Document flatten step, how to run FastAPI shim, and Java client usage in `docs/EMBEDDING_README.md`.
 
-Last synced: 2025-09-21 03:40:08 AM CDT — ran by assistant
+Last synced: 2025-09-22 02:25:33 PM CDT — ran by assistant
 
 ```
+
+## Recent internal todo changes
+- No changes since last sync.
